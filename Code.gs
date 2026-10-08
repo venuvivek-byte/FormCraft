@@ -169,3 +169,13 @@ function stripFences_(text) {
   }
   return cleaned.trim();
 }
+
+/**
+ * Run this function once from the Apps Script editor to trigger
+ * the one-time Google Account permission authorization prompt.
+ */
+function authorizePermissions() {
+  Logger.log("Triggering UrlFetchApp and FormApp permissions...");
+  UrlFetchApp.fetch("https://www.google.com");
+  Logger.log("UrlFetchApp authorized successfully!");
+}
