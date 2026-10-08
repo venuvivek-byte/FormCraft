@@ -62,19 +62,35 @@
     </script>
     <style>
         @layer base {
+            html {
+                scroll-behavior: smooth;
+            }
             html, body {
                 width: 100%;
+                min-height: 100%;
                 margin: 0;
                 padding: 0;
                 background-color: #08090C;
                 color: #dee2f0;
-                overflow-x: hidden;
             }
-            body { overscroll-behavior: none; }
             .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
             .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
         }
-        ::-webkit-scrollbar { display: none; }
+        /* Clean dark scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #08090C;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222631;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #343944;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -1067,7 +1083,15 @@
                     });
                 }
 
-                DOM.results.scrollIntoView({ behavior: 'smooth' });
+                // Smooth scroll down to results with header offset
+                setTimeout(() => {
+                    const rect = DOM.results.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    window.scrollTo({
+                        top: rect.top + scrollTop - 80,
+                        behavior: 'smooth'
+                    });
+                }, 100);
             }, 450);
         }
 
