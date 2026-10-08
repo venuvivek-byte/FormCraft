@@ -1,5 +1,5 @@
 # FormCraft ✨
-(https://script.google.com/macros/s/AKfycbyVwLPp0R2CcFgoMcFOgB4Hb_pw5y7_o0vRNcjZIctdcMVoZhlPDd3d1-6gIhtifzStRQ/exec)
+https://script.google.com/macros/s/AKfycbwigmS8AsWoRx77J0GVUmUHC3IbahWn6Cn5qT3HAtbwLOES22owmDl4RuCyZuwzNL-blA/exec
 > Turn any event into a feedback form in seconds
 
 ## What It Does
