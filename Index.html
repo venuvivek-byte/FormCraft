@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FormCraft</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+    <script type="module">
+        import { animate, stagger } from "https://cdn.jsdelivr.net/npm/motion@12/+esm";
+        window.motion = { animate, stagger };
+        window.dispatchEvent(new Event('motion-ready'));
+    </script>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+            --bg-gradient-start: #f0e6ff;
+            --bg-gradient-end: #e6f0ff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --card-bg: #ffffff;
+            --error-bg: #fee2e2;
+            --error-text: #b91c1c;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            opacity: 0; /* for animation */
+        }
+
+        header {
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #7c3aed, #4f46e5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        #loading, #errorBox, #results {
+            display: none;
+        }
+
+        #loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #errorBox {
+            background: var(--error-bg);
+            color: var(--error-text);
+            border-left: 4px solid var(--error-text);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: #059669;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .question-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            opacity: 0;
+            background: #fdfdfd;
+        }
+
+        .question-title {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .required-star {
+            color: #dc2626;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        .badge-rating { background: #e0e7ff; color: #4338ca; }
+        .badge-multiple-choice { background: #dbeafe; color: #1d4ed8; }
+        .badge-checkbox { background: #ccfbf1; color: #0f766e; }
+        .badge-text { background: #f3f4f6; color: #374151; }
+        .badge-short-text { background: #ffedd5; color: #c2410c; }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            opacity: 0;
+        }
+
+        footer {
+            margin-top: auto;
+            padding-top: 3rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <header>
+            <h1>FormCraft ✨</h1>
+            <p>Turn any event into a feedback form in seconds</p>
+        </header>
+
+        <div class="card">
+            <div class="input-group">
+                <label for="eventInput">Describe your event</label>
+                <textarea id="eventInput" rows="5" placeholder="e.g., We hosted a 2-day AI/ML workshop with hands-on labs on TensorFlow and a keynote on responsible AI..."></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="toneSelect">Form Tone</label>
+                <select id="toneSelect">
+                    <option value="Friendly" selected>Friendly</option>
+                    <option value="Formal">Formal</option>
+                    <option value="Short">Short</option>
+                </select>
+            </div>
+
+            <button id="generateBtn" class="btn btn-primary">
+                <span>🚀</span> <span id="generateBtnText">Generate Form</span>
+            </button>
+        </div>
+
+        <div class="card" id="loading">
+            <div class="spinner"></div>
+            <p>Crafting your form...</p>
+        </div>
+
+        <div class="card" id="errorBox">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Oops, something went wrong
+            </h3>
+            <p id="errorText">Please try again.</p>
+        </div>
+
+        <div class="card" id="results">
+            <div class="results-header">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Your form is ready!
+            </div>
+            
+            <div id="questionList">
+                <!-- Question cards injected here -->
+            </div>
+
+            <div class="action-buttons">
+                <a href="#" id="fillLink" target="_blank" class="btn btn-primary">Open Form</a>
+                <a href="#" id="editLink" target="_blank" class="btn btn-secondary">Edit Form</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Built with Gemini, Google Apps Script & Motion
+    </footer>
+
+    <script>
+        const DOM = {
+            container: document.getElementById('mainContainer'),
+            eventInput: document.getElementById('eventInput'),
+            toneSelect: document.getElementById('toneSelect'),
+            generateBtn: document.getElementById('generateBtn'),
+            generateBtnText: document.getElementById('generateBtnText'),
+            loading: document.getElementById('loading'),
+            errorBox: document.getElementById('errorBox'),
+            errorText: document.getElementById('errorText'),
+            results: document.getElementById('results'),
+            questionList: document.getElementById('questionList'),
+            fillLink: document.getElementById('fillLink'),
+            editLink: document.getElementById('editLink')
+        };
+
+        let motionApi = null;
+
+        window.addEventListener('motion-ready', () => {
+            motionApi = window.motion;
+            initAnimations();
+        });
+
+        // Fallback initialization if motion fails or before it loads
+        setTimeout(() => {
+            if (!motionApi) initAnimations();
+        }, 500);
+
+        function shouldAnimate() {
+            return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        }
+
+        function animateEl(element, keyframes, options) {
+            if (!shouldAnimate()) {
+                for (const key in keyframes) {
+                    let val = keyframes[key];
+                    if (Array.isArray(val)) val = val[val.length - 1];
+                    element.style[key] = val;
+                }
+                return;
+            }
+
+            if (motionApi) {
+                motionApi.animate(element, keyframes, options);
+            } else if (window.anime) {
+                const animeParams = { targets: element, duration: (options.duration || 1) * 1000, easing: 'easeOutExpo' };
+                for (const key in keyframes) {
+                    animeParams[key] = keyframes[key];
+                }
+                if (options.delay) {
+                    if (typeof options.delay === 'function') {
+                        animeParams.delay = anime.stagger(100, {start: 0});
+                    } else {
+                        animeParams.delay = options.delay * 1000;
+                    }
+                }
+                anime(animeParams);
+            }
+        }
+
+        function initAnimations() {
+            DOM.container.style.opacity = '1';
+            animateEl(DOM.container, { opacity: [0, 1], y: [24, 0] }, { duration: 0.6 });
+        }
+
+        DOM.generateBtn.addEventListener('mousedown', () => {
+            if (shouldAnimate() && !DOM.generateBtn.disabled) {
+                DOM.generateBtn.style.transform = 'scale(0.97)';
+            }
+        });
+
+        const resetBtnTransform = () => {
+            if (shouldAnimate() && !DOM.generateBtn.disabled) {
+                DOM.generateBtn.style.transform = '';
+            }
+        };
+
+        DOM.generateBtn.addEventListener('mouseup', resetBtnTransform);
+        DOM.generateBtn.addEventListener('mouseleave', resetBtnTransform);
+
+        DOM.generateBtn.addEventListener('click', () => {
+            const description = DOM.eventInput.value.trim();
+            if (!description) {
+                DOM.errorBox.style.display = 'block';
+                DOM.errorText.textContent = 'Please describe your event first.';
+                DOM.results.style.display = 'none';
+                return;
+            }
+
+            DOM.errorBox.style.display = 'none';
+            DOM.results.style.display = 'none';
+            DOM.loading.style.display = 'block';
+            DOM.generateBtn.disabled = true;
+            DOM.generateBtnText.textContent = 'Generating...';
+
+            const tone = DOM.toneSelect.value;
+
+            if (typeof google === 'undefined') {
+                setTimeout(() => {
+                    onSuccess({
+                        publishedUrl: 'https://example.com/form',
+                        editUrl: 'https://example.com/edit',
+                        title: 'Workshop Feedback',
+                        sections: [
+                            { title: 'Overall Experience', questions: [
+                                { text: 'How would you rate the workshop overall?', type: 'SCALE', required: true, scaleMin: 1, scaleMax: 5, lowLabel: 'Poor', highLabel: 'Excellent' },
+                                { text: 'Would you recommend this event to a colleague?', type: 'MULTIPLE_CHOICE', required: true, options: ['Definitely', 'Probably', 'Not sure', 'Probably not', 'Definitely not'] }
+                            ]},
+                            { title: 'Sessions', questions: [
+                                { text: 'Which session did you find most valuable?', type: 'MULTIPLE_CHOICE', required: false, options: ['Keynote', 'Hands-on Lab', 'Panel Discussion'] },
+                                { text: 'Any suggestions for improvement?', type: 'PARAGRAPH', required: false }
+                            ]}
+                        ]
+                    });
+                }, 2000);
+            } else {
+                google.script.run
+                    .withSuccessHandler(onSuccess)
+                    .withFailureHandler(onError)
+                    .generateForm(description, tone);
+            }
+        });
+
+        function getBadgeClass(type) {
+            const map = {
+                'SCALE': 'badge-rating',
+                'MULTIPLE_CHOICE': 'badge-multiple-choice',
+                'CHECKBOX': 'badge-checkbox',
+                'SHORT_TEXT': 'badge-short-text',
+                'PARAGRAPH': 'badge-text'
+            };
+            return map[type] || 'badge-text';
+        }
+
+        function friendlyType(type) {
+            const map = {
+                'SCALE': 'Rating',
+                'MULTIPLE_CHOICE': 'Multiple choice',
+                'CHECKBOX': 'Checkbox',
+                'SHORT_TEXT': 'Short text',
+                'PARAGRAPH': 'Text'
+            };
+            return map[type] || type;
+        }
+
+        function onSuccess(result) {
+            DOM.loading.style.display = 'none';
+            DOM.generateBtn.disabled = false;
+            DOM.generateBtnText.textContent = 'Generate Form';
+
+            // Backend returns { error: "..." } on failure
+            if (result.error) {
+                DOM.errorBox.style.display = 'block';
+                DOM.errorText.textContent = result.error;
+                return;
+            }
+            
+            DOM.questionList.innerHTML = '';
+            
+            if (result.sections && result.sections.length > 0) {
+                result.sections.forEach(section => {
+                    // Section header
+                    const sectionHeader = document.createElement('div');
+                    sectionHeader.style.cssText = 'font-weight:600;font-size:0.9rem;color:var(--primary);margin:1rem 0 0.5rem;text-transform:uppercase;letter-spacing:0.05em;';
+                    sectionHeader.textContent = section.title || '';
+                    DOM.questionList.appendChild(sectionHeader);
+
+                    // Questions in this section
+                    const questions = section.questions || [];
+                    questions.forEach(q => {
+                        const card = document.createElement('div');
+                        card.className = 'question-card';
+                        card.innerHTML = `
+                            <div class="question-title">
+                                ${q.text}
+                                ${q.required ? '<span class="required-star">*</span>' : ''}
+                            </div>
+                            <span class="badge ${getBadgeClass(q.type)}">${friendlyType(q.type)}</span>
+                        `;
+                        DOM.questionList.appendChild(card);
+                    });
+                });
+            }
+
+            DOM.fillLink.href = result.publishedUrl || '#';
+            DOM.editLink.href = result.editUrl || '#';
+
+            DOM.results.style.display = 'block';
+
+            const cards = document.querySelectorAll('.question-card');
+            const btns = document.querySelectorAll('.action-buttons .btn');
+            
+            if (shouldAnimate()) {
+                if (motionApi) {
+                    motionApi.animate(cards, { opacity: [0, 1], y: [20, 0] }, { delay: motionApi.stagger(0.08), duration: 0.4 });
+                    motionApi.animate(btns, { opacity: [0, 1], scale: [0.8, 1] }, { type: 'spring', delay: motionApi.stagger(0.1) });
+                } else if (window.anime) {
+                    anime({ targets: cards, opacity: [0, 1], translateY: [20, 0], delay: anime.stagger(80), duration: 400, easing: 'easeOutQuad' });
+                    anime({ targets: btns, opacity: [0, 1], scale: [0.8, 1], delay: anime.stagger(100), duration: 600, easing: 'easeOutElastic(1, .8)' });
+                }
+            } else {
+                cards.forEach(c => { c.style.opacity = '1'; c.style.transform = 'none'; });
+                btns.forEach(b => { b.style.opacity = '1'; b.style.transform = 'none'; });
+            }
+        }
+
+        function onError(error) {
+            DOM.loading.style.display = 'none';
+            DOM.generateBtn.disabled = false;
+            DOM.generateBtnText.textContent = 'Generate Form';
+            DOM.errorBox.style.display = 'block';
+            DOM.errorText.textContent = error.message || 'Failed to generate form. Please try again.';
+        }
+    </script>
+</body>
+</html>
