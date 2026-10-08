@@ -89,7 +89,13 @@ function callGemini_(description, tone) {
     throw new Error("GEMINI_API_KEY not found in script properties.");
   }
   
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // Cascade models: if one model experiences 503/429/high-demand, fall back to the next
+  const models = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro'
+  ];
   
   const payload = {
     systemInstruction: {
@@ -126,30 +132,40 @@ Return JSON only, no extra text.`
   };
   
   let lastError = null;
-  for (let i = 0; i < 2; i++) {
-    try {
-      const response = UrlFetchApp.fetch(url, options);
-      const responseCode = response.getResponseCode();
-      const content = response.getContentText();
-      
-      if (responseCode >= 200 && responseCode < 300) {
-        const json = JSON.parse(content);
-        if (json.candidates && json.candidates.length > 0) {
-          const rawText = json.candidates[0].content.parts[0].text;
-          const cleanedText = stripFences_(rawText);
-          return JSON.parse(cleanedText);
+
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = UrlFetchApp.fetch(url, options);
+        const responseCode = response.getResponseCode();
+        const content = response.getContentText();
+        
+        if (responseCode >= 200 && responseCode < 300) {
+          const json = JSON.parse(content);
+          if (json.candidates && json.candidates.length > 0) {
+            const rawText = json.candidates[0].content.parts[0].text;
+            const cleanedText = stripFences_(rawText);
+            return JSON.parse(cleanedText);
+          } else {
+            throw new Error(`Invalid candidate format from ${model}`);
+          }
+        } else if (responseCode === 503 || responseCode === 429) {
+          // Model busy or rate-limited; wait 1.2s before retrying or falling back to next model
+          lastError = new Error(`Model ${model} unavailable (${responseCode})`);
+          Utilities.sleep(1200);
         } else {
-          throw new Error("Invalid response format from Gemini API.");
+          throw new Error(`API Error ${responseCode}: ${content}`);
         }
-      } else {
-        throw new Error(`API Error ${responseCode}: ${content}`);
+      } catch (e) {
+        lastError = e;
+        Utilities.sleep(800);
       }
-    } catch (e) {
-      lastError = e;
-      Utilities.sleep(1000); // Wait 1 second before retry
     }
   }
-  throw new Error(`Failed to call Gemini API after retries: ${lastError.message}`);
+
+  throw new Error(`Failed to call Gemini API after cascading fallback across models: ${lastError.message}`);
 }
 
 /**
