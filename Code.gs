@@ -155,48 +155,126 @@ function callAI_(description, tone) {
 
 /**
  * Returns structured prompt for LLMs.
+ * Designed to understand ANY form request: feedback, voting/selection, polls, RSVPs, or evaluations.
  */
 function getPrompt_(description, tone) {
-  return `Generate an event feedback form JSON for this event:
-Event description: "${description}"
-Tone: "${tone}"
+  return `You are an intelligent Google Form builder.
+User Request: "${description}"
+Desired Tone: "${tone}"
+
+TASK:
+Analyze the user's intent. If they want a feedback form, generate evaluation questions. If they want a voting/selection form (e.g. "selecting a movie for movie night include rajamouli movies", choosing a restaurant, voting for games), generate EXACTLY what they asked for with specific, relevant options and questions (e.g. actual movie names like Baahubali, RRR, Eega, Magadheera for Rajamouli movies, snack preferences, timing, etc.).
 
 Return valid JSON strictly matching this schema:
 {
-  "title": "Clear concise event feedback title",
-  "description": "Short welcome note and estimated completion time",
+  "title": "Clear, appealing title matching the user's intent",
+  "description": "Helpful description explaining the purpose of this form",
   "sections": [
     {
-      "title": "Section Name",
+      "title": "Section Title",
       "questions": [
         {
           "type": "SCALE | MULTIPLE_CHOICE | CHECKBOX | PARAGRAPH | SHORT_TEXT",
-          "text": "Question prompt",
-          "options": ["Option 1", "Option 2"],
+          "text": "Specific question prompt",
+          "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
           "required": true,
           "scaleMin": 1,
           "scaleMax": 5,
-          "lowLabel": "Poor",
-          "highLabel": "Exceptional"
+          "lowLabel": "Low",
+          "highLabel": "High"
         }
       ]
     }
   ]
 }
 
-Rules:
-1. Max 10-12 questions across 2-3 logical sections.
-2. Section 1: Overall Resonance & Experience (CSAT Rating, Value).
-3. Section 2: Specific Sessions, Demos, Workshops mentioned in description.
-4. Section 3: Logistics & Suggestions for Future.
-5. Return JSON ONLY. No markdown explanation.`;
+RULES:
+1. Pay strict attention to specific user instructions (e.g., if they ask for Rajamouli movies, include real movies like 'RRR', 'Baahubali: The Beginning', 'Baahubali: The Conclusion', 'Eega (Makkhi)', 'Magadheera', 'Chatrapathi' in the options!).
+2. For selection/voting forms, use MULTIPLE_CHOICE or CHECKBOX with great choices.
+3. Keep it between 5 to 10 practical questions across 1 to 3 sections.
+4. Return pure JSON only. No markdown fences or commentary.`;
 }
 
 /**
  * Intelligent semantic context engine that crafts customized questions
- * based on the user's actual event description when external APIs are offline.
+ * based on the user's actual prompt when external APIs are offline.
  */
 function buildSmartFallbackForm_(description, tone) {
+  const lower = description.toLowerCase();
+  const isMovie = /movie|film|cinema|watch|screening/i.test(description);
+  const isRajamouli = /rajamouli|ssr|baahubali|rrr|eega|magadheera/i.test(description);
+  const isVoting = /select|vote|choice|poll|pick|choose/i.test(description);
+
+  // Case A: Movie Night / Film Selection Form
+  if (isMovie || (isVoting && isRajamouli)) {
+    const movieOptions = isRajamouli ? [
+      "RRR (2022)",
+      "Baahubali 2: The Conclusion (2017)",
+      "Baahubali: The Beginning (2015)",
+      "Eega / Makkhi (2012)",
+      "Magadheera (2009)",
+      "Vikramarkudu (2006)"
+    ] : [
+      "Inception (Sci-Fi / Thriller)",
+      "Interstellar (Sci-Fi / Adventure)",
+      "The Dark Knight (Action / Crime)",
+      "Spirited Away (Animation / Fantasy)",
+      "Knives Out (Mystery / Comedy)"
+    ];
+
+    return {
+      title: isRajamouli ? "SS Rajamouli Movie Night Poll" : "Movie Night Selection & Poll",
+      description: `Vote for your favorite film and help us organize the ultimate movie night! Takes 1 minute.`,
+      sections: [
+        {
+          title: "Movie Selection",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: isRajamouli ? "Which S.S. Rajamouli masterpiece should we watch?" : "Vote for your #1 movie choice:",
+              options: movieOptions,
+              required: true
+            },
+            {
+              type: "CHECKBOX",
+              text: "Select any backup movies you'd also love to watch:",
+              options: movieOptions,
+              required: false
+            },
+            {
+              type: "SHORT_TEXT",
+              text: "Have another movie suggestion in mind?",
+              required: false
+            }
+          ]
+        },
+        {
+          title: "Schedule & Snacks",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "What start time works best for you?",
+              options: ["6:00 PM", "7:30 PM", "9:00 PM", "Late Night (10:30 PM)"],
+              required: true
+            },
+            {
+              type: "CHECKBOX",
+              text: "What snacks / refreshments should we have?",
+              options: ["Popcorn & Butter", "Pizza", "Nachos & Cheese", "Cold Drinks / Soda", "Samosas & Chai", "Ice Cream / Desserts"],
+              required: false
+            },
+            {
+              type: "PARAGRAPH",
+              text: "Any dietary preferences or general suggestions for the night?",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // Case B: Standard Event / Tech / Workshop
   const isTech = /ai|ml|code|developer|hackathon|cloud|api|demo|keynote|software|tech|data/i.test(description);
   const isWorkshop = /workshop|masterclass|hands-on|training|bootcamp|lab/i.test(description);
   const isSocial = /networking|mixer|party|dinner|reception|meetup/i.test(description);
