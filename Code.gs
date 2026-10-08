@@ -89,67 +89,139 @@ function generateForm(description, tone) {
  * @returns {Object} The parsed JSON object representing the form structure.
  */
 function callAI_(description, tone) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  const scriptProps = PropertiesService.getScriptProperties();
+  const groqKey = scriptProps.getProperty('GROQ_API_KEY');
+  const grokKey = scriptProps.getProperty('XAI_API_KEY') || scriptProps.getProperty('GROK_API_KEY');
+  const openRouterKey = scriptProps.getProperty('OPENROUTER_API_KEY');
+  const geminiKey = scriptProps.getProperty('GEMINI_API_KEY');
 
-  // Strategy 1: If Gemini API key is provided, try v1beta models
-  if (apiKey) {
-    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
-    for (const model of models) {
+  const prompt = getPrompt_(description, tone);
+
+  // Strategy 1: Groq API (Ultra-fast & free tier, llama-3.3-70b-versatile or mixtral)
+  if (groqKey) {
+    try {
+      const groqRes = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'Authorization': `Bearer ${groqKey}` },
+        payload: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are an expert Google Form builder. Output valid JSON ONLY matching the requested schema.' },
+            { role: 'user', content: prompt }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.3
+        }),
+        muteHttpExceptions: true
+      });
+      if (groqRes.getResponseCode() >= 200 && groqRes.getResponseCode() < 300) {
+        const json = JSON.parse(groqRes.getContentText());
+        const content = json.choices[0].message.content;
+        Logger.log('Generated successfully via Groq LLama-3.3-70B');
+        return JSON.parse(stripFences_(content));
+      } else {
+        Logger.log(`Groq error: ${groqRes.getContentText()}`);
+      }
+    } catch (e) {
+      Logger.log(`Groq call failed: ${e.message}`);
+    }
+  }
+
+  // Strategy 2: xAI Grok API (grok-2, grok-beta)
+  if (grokKey) {
+    try {
+      const grokRes = UrlFetchApp.fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'Authorization': `Bearer ${grokKey}` },
+        payload: JSON.stringify({
+          model: 'grok-beta',
+          messages: [
+            { role: 'system', content: 'You are an expert Google Form builder. Output valid JSON ONLY matching the requested schema.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3
+        }),
+        muteHttpExceptions: true
+      });
+      if (grokRes.getResponseCode() >= 200 && grokRes.getResponseCode() < 300) {
+        const json = JSON.parse(grokRes.getContentText());
+        const content = json.choices[0].message.content;
+        Logger.log('Generated successfully via xAI Grok');
+        return JSON.parse(stripFences_(content));
+      } else {
+        Logger.log(`Grok error: ${grokRes.getContentText()}`);
+      }
+    } catch (e) {
+      Logger.log(`Grok call failed: ${e.message}`);
+    }
+  }
+
+  // Strategy 3: OpenRouter API (Access to free Grok / Meta Llama models)
+  if (openRouterKey) {
+    try {
+      const orRes = UrlFetchApp.fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'HTTP-Referer': 'https://script.google.com',
+          'X-Title': 'EventPulse Form Builder'
+        },
+        payload: JSON.stringify({
+          model: 'meta-llama/llama-3.3-70b-instruct:free',
+          messages: [
+            { role: 'system', content: 'You are an expert Google Form builder. Output valid JSON ONLY matching the requested schema.' },
+            { role: 'user', content: prompt }
+          ]
+        }),
+        muteHttpExceptions: true
+      });
+      if (orRes.getResponseCode() >= 200 && orRes.getResponseCode() < 300) {
+        const json = JSON.parse(orRes.getContentText());
+        const content = json.choices[0].message.content;
+        Logger.log('Generated successfully via OpenRouter Free');
+        return JSON.parse(stripFences_(content));
+      }
+    } catch (e) {
+      Logger.log(`OpenRouter call failed: ${e.message}`);
+    }
+  }
+
+  // Strategy 4: Google Gemini (v1 endpoint instead of deprecated v1beta models)
+  if (geminiKey) {
+    const geminiUrls = [
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`
+    ];
+    for (const url of geminiUrls) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const payload = {
-          contents: [{ parts: [{ text: getPrompt_(description, tone) }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        };
         const res = UrlFetchApp.fetch(url, {
           method: 'post',
           contentType: 'application/json',
-          payload: JSON.stringify(payload),
+          payload: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          }),
           muteHttpExceptions: true
         });
         if (res.getResponseCode() >= 200 && res.getResponseCode() < 300) {
           const json = JSON.parse(res.getContentText());
           if (json.candidates && json.candidates[0].content.parts[0].text) {
-            const raw = json.candidates[0].content.parts[0].text;
-            return JSON.parse(stripFences_(raw));
+            Logger.log('Generated successfully via Gemini');
+            return JSON.parse(stripFences_(json.candidates[0].content.parts[0].text));
           }
         }
       } catch (e) {
-        Logger.log(`Gemini ${model} failed, trying next: ${e.message}`);
+        Logger.log(`Gemini endpoint failed: ${e.message}`);
       }
     }
   }
 
-  // Strategy 2: Free Cloud AI via Pollinations Text API (Free, zero-key, OpenAI compatible)
-  try {
-    const freeUrl = "https://text.pollinations.ai/";
-    const prompt = getPrompt_(description, tone);
-    const freeRes = UrlFetchApp.fetch(freeUrl, {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify({
-        messages: [
-          { role: "system", content: "You are an expert feedback form architect. Return JSON ONLY matching the requested schema." },
-          { role: "user", content: prompt }
-        ],
-        model: "openai",
-        jsonMode: true
-      }),
-      muteHttpExceptions: true
-    });
-    if (freeRes.getResponseCode() >= 200 && freeRes.getResponseCode() < 300) {
-      const text = freeRes.getContentText();
-      const parsed = JSON.parse(stripFences_(text));
-      if (parsed.sections && parsed.sections.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    Logger.log(`Free AI provider error: ${err.message}`);
-  }
-
-  // Strategy 3: Guaranteed zero-failure EventPulse Semantic Engine
-  // Parses event details, topics, activities and builds a custom structured form
+  // Strategy 5: Built-in High-Precision EventPulse Context Engine
+  Logger.log('Using high-precision EventPulse contextual engine');
   return buildSmartFallbackForm_(description, tone);
 }
 
