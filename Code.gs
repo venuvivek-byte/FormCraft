@@ -273,44 +273,59 @@ RULES:
  */
 function buildSmartFallbackForm_(description, tone) {
   const lower = description.toLowerCase();
-  const isMovie = /movie|film|cinema|watch|screening/i.test(description);
-  const isRajamouli = /rajamouli|ssr|baahubali|rrr|eega|magadheera/i.test(description);
-  const isVoting = /select|vote|choice|poll|pick|choose/i.test(description);
 
-  // Case A: Movie Night / Film Selection Form
-  if (isMovie || (isVoting && isRajamouli)) {
-    const movieOptions = isRajamouli ? [
-      "RRR (2022)",
-      "Baahubali 2: The Conclusion (2017)",
-      "Baahubali: The Beginning (2015)",
-      "Eega / Makkhi (2012)",
-      "Magadheera (2009)",
-      "Vikramarkudu (2006)"
-    ] : [
+  // 1. MOVIE / FILM NIGHT / ENTERTAINMENT
+  const isMovie = /movie|film|cinema|watch|screening|theatre|theater|stream/i.test(description);
+  const isRajamouli = /rajamouli|ssr|baahubali|rrr|eega|magadheera|maryada ramanna/i.test(description);
+  const isMarvel = /marvel|mcu|avengers|spider|batman|superhero/i.test(description);
+  const isAnime = /anime|manga|ghibli|naruto|shinkai/i.test(description);
+
+  if (isMovie || isRajamouli || isMarvel || isAnime) {
+    let movieChoices = [
       "Inception (Sci-Fi / Thriller)",
       "Interstellar (Sci-Fi / Adventure)",
       "The Dark Knight (Action / Crime)",
-      "Spirited Away (Animation / Fantasy)",
+      "Parasite (Drama / Thriller)",
       "Knives Out (Mystery / Comedy)"
     ];
+    let formTitle = "Movie Night Selection & Poll";
+
+    if (isRajamouli) {
+      formTitle = "S.S. Rajamouli Movie Night Poll";
+      movieChoices = [
+        "RRR (2022)",
+        "Baahubali 2: The Conclusion (2017)",
+        "Baahubali: The Beginning (2015)",
+        "Eega / Makkhi (2012)",
+        "Magadheera (2009)",
+        "Chatrapathi (2005)",
+        "Vikramarkudu (2006)"
+      ];
+    } else if (isMarvel) {
+      formTitle = "Marvel Movie Marathon Vote";
+      movieChoices = ["Avengers: Endgame", "Infinity War", "Spider-Man: No Way Home", "Iron Man", "Captain America: Winter Soldier"];
+    } else if (isAnime) {
+      formTitle = "Anime Movie Night Selection";
+      movieChoices = ["Spirited Away", "Your Name (Kimi no Na wa)", "Princess Mononoke", "Suzume", "Demon Slayer: Mugen Train"];
+    }
 
     return {
-      title: isRajamouli ? "SS Rajamouli Movie Night Poll" : "Movie Night Selection & Poll",
-      description: `Vote for your favorite film and help us organize the ultimate movie night! Takes 1 minute.`,
+      title: formTitle,
+      description: `Vote for your favorite film and help us organize the ultimate movie night! (${tone})`,
       sections: [
         {
-          title: "Movie Selection",
+          title: "Movie Voting",
           questions: [
             {
               type: "MULTIPLE_CHOICE",
               text: isRajamouli ? "Which S.S. Rajamouli masterpiece should we watch?" : "Vote for your #1 movie choice:",
-              options: movieOptions,
+              options: movieChoices,
               required: true
             },
             {
               type: "CHECKBOX",
               text: "Select any backup movies you'd also love to watch:",
-              options: movieOptions,
+              options: movieChoices,
               required: false
             },
             {
@@ -331,13 +346,13 @@ function buildSmartFallbackForm_(description, tone) {
             },
             {
               type: "CHECKBOX",
-              text: "What snacks / refreshments should we have?",
-              options: ["Popcorn & Butter", "Pizza", "Nachos & Cheese", "Cold Drinks / Soda", "Samosas & Chai", "Ice Cream / Desserts"],
+              text: "What snacks & refreshments should we have?",
+              options: ["Popcorn & Butter", "Pizza", "Nachos & Cheese", "Cold Drinks / Soda", "Samosas & Chai", "Ice Cream & Desserts"],
               required: false
             },
             {
               type: "PARAGRAPH",
-              text: "Any dietary preferences or general suggestions for the night?",
+              text: "Any dietary restrictions or seating preferences?",
               required: false
             }
           ]
@@ -346,130 +361,315 @@ function buildSmartFallbackForm_(description, tone) {
     };
   }
 
-  // Case B: Standard Event / Tech / Workshop
-  const isTech = /ai|ml|code|developer|hackathon|cloud|api|demo|keynote|software|tech|data/i.test(description);
-  const isWorkshop = /workshop|masterclass|hands-on|training|bootcamp|lab/i.test(description);
-  const isSocial = /networking|mixer|party|dinner|reception|meetup/i.test(description);
+  // 2. FOOD / RESTAURANT / TEAM LUNCH / DINNER / POTLUCK
+  if (/lunch|dinner|breakfast|food|restaurant|eat|potluck|dine|cafe|pizza|biryani|buffet/i.test(description)) {
+    return {
+      title: "Team Food & Dining Poll",
+      description: `Vote on cuisine, venue, and timing for our meal together. (${tone})`,
+      sections: [
+        {
+          title: "Cuisine & Venue Preferences",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "What cuisine are you in the mood for?",
+              options: ["Indian / Biryani & Curry", "Italian & Pizza / Pasta", "Asian / Chinese & Thai", "Burgers & Fast Casual", "Healthy Salads & Bowls", "South Indian Tiffins"],
+              required: true
+            },
+            {
+              type: "CHECKBOX",
+              text: "Select preferred dining style:",
+              options: ["Dine-in Restaurant", "Casual Cafe", "Order-in / Delivery to Office or Home", "Buffet", "Rooftop / Outdoor Seating"],
+              required: false
+            },
+            {
+              type: "SHORT_TEXT",
+              text: "Do you have a specific restaurant in mind?",
+              required: false
+            }
+          ]
+        },
+        {
+          title: "Logistics & Dietary Needs",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "What is your dietary preference?",
+              options: ["Vegetarian", "Non-Vegetarian", "Vegan", "Halal", "Gluten-Free / Other"],
+              required: true
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Preferred time slot:",
+              options: ["12:30 PM", "1:30 PM", "7:30 PM", "8:30 PM"],
+              required: true
+            },
+            {
+              type: "PARAGRAPH",
+              text: "Any food allergies or special instructions?",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
 
+  // 3. SPORTS / FITNESS / GYM / GAME NIGHT
+  if (/cricket|football|badminton|sports|gym|fitness|workout|game|board game|tournament|match/i.test(description)) {
+    return {
+      title: "Sports & Game Activity Poll",
+      description: `Sign up and vote for our upcoming activity session. (${tone})`,
+      sections: [
+        {
+          title: "Activity & Format",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Will you participate in the game?",
+              options: ["Yes - Ready to play!", "Maybe / Tentative", "Spectator / Cheering squad", "Cannot make it"],
+              required: true
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Your skill / experience level:",
+              options: ["Beginner (Just for fun)", "Intermediate (Know the rules)", "Advanced / Competitive"],
+              required: true
+            },
+            {
+              type: "CHECKBOX",
+              text: "Can you bring any equipment / gear?",
+              options: ["Balls / Shuttlecocks", "Bats / Rackets", "First Aid Kit", "Water Cooler / Energy Drinks"],
+              required: false
+            }
+          ]
+        },
+        {
+          title: "Slot & Venue",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Best time slot for the session:",
+              options: ["Early Morning (6:00 - 8:00 AM)", "Morning (8:00 - 10:00 AM)", "Evening (5:00 - 7:00 PM)", "Night Turf (8:00 - 10:00 PM)"],
+              required: true
+            },
+            {
+              type: "PARAGRAPH",
+              text: "Any suggestions for venue or format?",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 4. TRAVEL / WEEKEND TRIP / PICNIC / OUTING
+  if (/trip|travel|vacation|weekend|picnic|trek|beach|resort|hike|road trip/i.test(description)) {
+    return {
+      title: "Weekend Trip & Outing Planner",
+      description: `Help plan our trip destination, transport, and dates. (${tone})`,
+      sections: [
+        {
+          title: "Destination & Dates",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "What vibe do you prefer for this trip?",
+              options: ["Hill Station / Mountain Trek", "Beach & Coastal Chill", "Resort Staycation with Pool", "Adventure & Camping", "Historical / Cultural Exploration"],
+              required: true
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Trip duration preference:",
+              options: ["1 Day Outing (Return by night)", "Overnight / 2 Days (Weekend)", "3-4 Days Long Weekend"],
+              required: true
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Budget comfort level per person:",
+              options: ["Budget-friendly (< $50 / ₹2,000)", "Moderate ($50-$150 / ₹2,000-₹8,000)", "Luxury ($150+ / ₹8,000+)"],
+              required: true
+            }
+          ]
+        },
+        {
+          title: "Travel & Activities",
+          questions: [
+            {
+              type: "CHECKBOX",
+              text: "Preferred mode of transportation:",
+              options: ["Self-drive / Carpool", "Chartered Bus / Van", "Train", "Flight"],
+              required: true
+            },
+            {
+              type: "CHECKBOX",
+              text: "Must-have activities:",
+              options: ["Campfire & Music", "Trekking / Hiking", "Sightseeing", "Board Games & Indoor relax", "Photography"],
+              required: false
+            },
+            {
+              type: "SHORT_TEXT",
+              text: "Emergency contact number or dietary notes:",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 5. PARTY / CELEBRATION / BIRTHDAY / RSVP
+  if (/party|birthday|celebration|anniversary|farewell|fest|gathering|rsvp/i.test(description)) {
+    return {
+      title: "Party & Celebration RSVP",
+      description: `RSVP and help us plan music, activities, and food! (${tone})`,
+      sections: [
+        {
+          title: "RSVP & Attendance",
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Will you be attending?",
+              options: ["Yes, definitely!", "Tentative (Will confirm soon)", "Sorry, cannot make it"],
+              required: true
+            },
+            {
+              type: "SHORT_TEXT",
+              text: "Your Name & Contact (Phone or Email):",
+              required: true
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              text: "Are you bringing any plus-ones?",
+              options: ["Just me", "+1 Guest", "+2 or Family"],
+              required: true
+            }
+          ]
+        },
+        {
+          title: "Fun & Preferences",
+          questions: [
+            {
+              type: "SHORT_TEXT",
+              text: "Suggest a song for the party playlist:",
+              required: false
+            },
+            {
+              type: "CHECKBOX",
+              text: "Drink / beverage preferences:",
+              options: ["Mocktails / Juices", "Soda / Soft drinks", "Beer / Wine", "Cocktails", "Water only"],
+              required: false
+            },
+            {
+              type: "PARAGRAPH",
+              text: "Leave a warm message or special wish for the host!",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 6. DAILY WORK / STANDUP / TASK LOG / STUDY GROUP
+  if (/standup|daily|study|class|project|sprint|scrum|meeting|weekly|work/i.test(description)) {
+    return {
+      title: "Daily Standup & Progress Check-in",
+      description: `Daily synchronous sync for blockers, progress, and focus goals. (${tone})`,
+      sections: [
+        {
+          title: "Progress & Focus",
+          questions: [
+            {
+              type: "SHORT_TEXT",
+              text: "Your Name / Role:",
+              required: true
+            },
+            {
+              type: "PARAGRAPH",
+              text: "What did you complete yesterday / recently?",
+              required: true
+            },
+            {
+              type: "PARAGRAPH",
+              text: "What are your top 1-2 priorities for today?",
+              required: true
+            },
+            {
+              type: "PARAGRAPH",
+              text: "Any blockers or dependencies where you need support?",
+              required: false
+            },
+            {
+              type: "SCALE",
+              text: "How energized and on-track are you feeling today? (1-5)",
+              scaleMin: 1,
+              scaleMax: 5,
+              lowLabel: "Blocked",
+              highLabel: "Unstoppable",
+              required: false
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 7. DEFAULT DYNAMIC FALLBACK: PARSES WHATEVER THE USER TYPED
   let cleanTitle = description.split('\n')[0].substring(0, 50).trim();
-  if (cleanTitle.length > 5 && !cleanTitle.toLowerCase().includes('feedback')) {
-    cleanTitle += ' Feedback';
+  if (cleanTitle.length > 3 && !cleanTitle.toLowerCase().includes('form')) {
+    cleanTitle += ' Form & Poll';
   } else {
-    cleanTitle = 'Attendee Feedback & Evaluation';
+    cleanTitle = 'Event & Activity Form';
   }
-
-  const sections = [];
-
-  // Section 1: Core Event Experience
-  sections.push({
-    title: "Overall Experience & CSAT",
-    questions: [
-      {
-        type: "SCALE",
-        text: "Overall rating of the event and session quality",
-        scaleMin: 1,
-        scaleMax: 5,
-        lowLabel: "Poor",
-        highLabel: "Exceptional",
-        required: true
-      },
-      {
-        type: "MULTIPLE_CHOICE",
-        text: "Did this event meet your primary expectations?",
-        options: ["Exceeded expectations", "Met expectations", "Somewhat met", "Did not meet expectations"],
-        required: true
-      },
-      {
-        type: "SCALE",
-        text: "How likely are you to recommend our next edition to a colleague or friend? (1-5)",
-        scaleMin: 1,
-        scaleMax: 5,
-        lowLabel: "Unlikely",
-        highLabel: "Definitely",
-        required: true
-      }
-    ]
-  });
-
-  // Section 2: Content & Technical / Session Depth
-  const contentQs = [];
-  if (isTech || isWorkshop) {
-    contentQs.push({
-      type: "MULTIPLE_CHOICE",
-      text: "How would you rate the technical depth and pace of the content?",
-      options: ["Too advanced / fast", "Just right & practical", "Too high-level / basic"],
-      required: true
-    });
-    contentQs.push({
-      type: "CHECKBOX",
-      text: "Which session elements provided the highest practical value?",
-      options: ["Live interactive demos", "Keynote announcements", "Hands-on coding / exercises", "Q&A and speaker insights"],
-      required: false
-    });
-  } else {
-    contentQs.push({
-      type: "MULTIPLE_CHOICE",
-      text: "Which aspect of the schedule was most engaging for you?",
-      options: ["Main presentations", "Interactive activities", "Discussions & Q&A", "Community interaction"],
-      required: true
-    });
-  }
-
-  contentQs.push({
-    type: "SCALE",
-    text: "Clarity and preparation of the speakers / facilitators",
-    scaleMin: 1,
-    scaleMax: 5,
-    lowLabel: "Needs polish",
-    highLabel: "Masterful",
-    required: false
-  });
-
-  sections.push({
-    title: "Session Quality & Delivery",
-    questions: contentQs
-  });
-
-  // Section 3: Logistics, Networking & Open Backlog
-  const logQs = [
-    {
-      type: "SCALE",
-      text: "Organization, timing, and venue/connectivity logistics",
-      scaleMin: 1,
-      scaleMax: 5,
-      lowLabel: "Fair",
-      highLabel: "Flawless",
-      required: false
-    }
-  ];
-
-  if (isSocial) {
-    logQs.push({
-      type: "SCALE",
-      text: "Quality and value of the networking opportunities",
-      scaleMin: 1,
-      scaleMax: 5,
-      lowLabel: "Limited",
-      highLabel: "High-value connections",
-      required: false
-    });
-  }
-
-  logQs.push({
-    type: "PARAGRAPH",
-    text: "What single topic or feature should we prioritize for the next event?",
-    required: false
-  });
-
-  sections.push({
-    title: "Logistics & Suggestions",
-    questions: logQs
-  });
 
   return {
     title: cleanTitle,
-    description: `Official feedback form configured for ${tone.toLowerCase()} attendee reception. Takes ~2 minutes to complete.`,
-    sections: sections
+    description: `Created for: "${description.substring(0, 80)}...". (${tone})`,
+    sections: [
+      {
+        title: "Preferences & Selections",
+        questions: [
+          {
+            type: "MULTIPLE_CHOICE",
+            text: `Select your preferred option for: ${description.substring(0, 50)}`,
+            options: ["Option A - Recommended", "Option B - Alternative", "Option C - Flexible", "Other"],
+            required: true
+          },
+          {
+            type: "CHECKBOX",
+            text: "Select all relevant choices or requirements:",
+            options: ["Morning availability", "Afternoon availability", "Evening availability", "Weekend preferred"],
+            required: false
+          },
+          {
+            type: "SHORT_TEXT",
+            text: "Your Name or Email:",
+            required: true
+          }
+        ]
+      },
+      {
+        title: "Details & Comments",
+        questions: [
+          {
+            type: "SCALE",
+            text: "Rate your enthusiasm / interest level (1-5)",
+            scaleMin: 1,
+            scaleMax: 5,
+            lowLabel: "Low",
+            highLabel: "Very High",
+            required: true
+          },
+          {
+            type: "PARAGRAPH",
+            text: "Any specific notes, questions, or ideas you'd like to share?",
+            required: false
+          }
+        ]
+      }
+    ]
   };
 }
 
