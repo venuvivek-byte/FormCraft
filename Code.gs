@@ -89,11 +89,12 @@ function callGemini_(description, tone) {
     throw new Error("GEMINI_API_KEY not found in script properties.");
   }
   
-  // Cascade models: if one model experiences 503/429/high-demand, fall back to the next
+  // Models in priority order, including the latest recommended gemini-3.8-flash
   const models = [
+    'gemini-3.8-flash',
+    'gemini-2.0-flash',
     'gemini-2.5-flash',
     'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
     'gemini-1.5-pro'
   ];
   
@@ -151,16 +152,21 @@ Return JSON only, no extra text.`
           } else {
             throw new Error(`Invalid candidate format from ${model}`);
           }
+        } else if (responseCode === 404) {
+          // Model deprecated or not found for this API tier - immediately break and try next model
+          lastError = new Error(`Model ${model} not available (404)`);
+          break;
         } else if (responseCode === 503 || responseCode === 429) {
-          // Model busy or rate-limited; wait 1.2s before retrying or falling back to next model
-          lastError = new Error(`Model ${model} unavailable (${responseCode})`);
-          Utilities.sleep(1200);
+          // High demand / rate limit; retry or try next
+          lastError = new Error(`Model ${model} busy (${responseCode})`);
+          Utilities.sleep(1000);
         } else {
-          throw new Error(`API Error ${responseCode}: ${content}`);
+          lastError = new Error(`API Error ${responseCode}: ${content}`);
+          break;
         }
       } catch (e) {
         lastError = e;
-        Utilities.sleep(800);
+        Utilities.sleep(600);
       }
     }
   }
